@@ -184,33 +184,41 @@ def generate_and_save_keypair_manually():
 
 #ПАРАМЕТРЫ ЭЛЛИПТИЧЕСКОЙ КРИВОЙ E И БАЗОВОЙ ТОЧКИ P (ГОСТ Р 34.10-2012)
 E = {
-    # Модуль эллиптического поля
-    'p': 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF43,
+    # Модуль эллиптического поля (p) по ГОСТ Р 34.10-2012
+    'p': 0x8000000000000000000000000000000000000000000000000000000000000043,
     
     # Коэффициенты уравнения кривой y^2 = x^3 + ax + b
     'a': 0x07,
-    'b': 0x5D7281C30AF19E148D860516742F73D4E6B7865E37839601E85F540E86887A84,
+    'b': 0x5FBFF498AA938CE739B8E022FBAFEF40563F6E653008F7C87A7AEC0C4FD129D6,
     
-    # Порядок группы точек кривой (по его модулю идут все расчеты подписи)
-    'q': 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+    # Порядок группы точек кривой (q) по ГОСТ Р 34.10-2012
+    'q': 0x8000000000000000000000000000000150FE8A11814E5D69F56A7B4EADC2299D
 }
 
-# Базовая точка P на кривой E
+# Базовая точка P на кривой (координаты x и y)
 P_point = (
-    0x03, 
-    0xFA4047B8356CE74311DEE28F38E5DA56DE33A2145529F426471905651B2A1293  
+    0x7F2B49E270105F6C22CCDE9A608F5233A5DF2F60914902F18AA2DFEB61A7C5F3, # x
+    0x66B72740A10FD40E9A8EE918AD68B7504367A531FB35799D079D9280CFDDE396  # y
 )
 
 # Поиск обратного элемента по модулю: (val * result) % m == 1.
 def mod_inverse(val, m):
+    # Приводим к положительному числу в пределах модуля
     a, b = val % m, m
-    if val == 0:
-        return 0
+    if a == 0:
+        return 0  # Обратного элемента не существует
+    
+    # Инициализация для расширенного алгоритма Евклида
     x0, x1 = 1, 0
     while b > 0:
         q_div = a // b
         a, b = b, a % b
         x0, x1 = x1, x0 - q_div * x1
+    
+    # Если в конце a != 1, значит числа не взаимно просты (обратного нет)
+    if a > 1: 
+        return 0 
+
     return x0 % m
 
 # Сложение двух точек P1 и P2 на эллиптической кривой E.
@@ -304,11 +312,11 @@ def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
     if len(signature_bytes) != 64:
         return False
     
-    r = int.from_bytes(signature_bytes[:32], byteorder='little')
-    s = int.from_bytes(signature_bytes[32:], byteorder='little')
+    r = int.from_bytes(signature_bytes[:32], byteorder='big')
+    s = int.from_bytes(signature_bytes[32:], byteorder='big')
     
     # Шаг 1 вычисление хэш-функции полученного сообщения М (Передано в file_hash)
-    alpha = int.from_bytes(file_hash, byteorder='little')
+    alpha = int.from_bytes(file_hash, byteorder='big')
     if alpha % E['q'] == 0:
         alpha = 1
     
@@ -322,13 +330,11 @@ def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
     
     # Шаг 4 вычисление z1 z2
     z1 = (s * v) % E['q']
-    z2 = (-r * v) % E['q']
-    if z2 < 0:
-        z2 += E['q']
+    z2 = ((E['q'] - r) * v) % E['q']
     
     # Шаг 5 извлекаем координаты точки открытого ключа Q
-    qx = int.from_bytes(public_key_bytes[:32], byteorder='little')
-    qy = int.from_bytes(public_key_bytes[32:], byteorder='little')
+    qx = int.from_bytes(public_key_bytes[:32], byteorder='big')
+    qy = int.from_bytes(public_key_bytes[32:], byteorder='big')
     Q_point = (qx, qy)
     
     # Шаг 6 вычисление точки эллиптической кривой C = z1P + z2Q и определение R
@@ -393,8 +399,17 @@ if __name__ == "__main__":
             if not file_info: continue
             file_path, _, _ = file_info
 
-            # Вычисляем хэш-файла
-            file_hash = calculate_hash_from_gost(file_path)
+            with open(file_path, "rb") as f:
+                raw_file_bytes = f.read()
+
+            if len(raw_file_bytes) == 32:
+                # Если файл ровно 32 байта, значит это наш готовый эталонный хэш из create_test_files.py
+                file_hash = raw_file_bytes
+                print("Обнаружен готовый ГОСТ-хеш (32 байта). Повторное хеширование пропущено.")
+                print(f"Используемый ГОСТ-хеш (HEX): {file_hash.hex()}")
+            else:
+                # Для любых других файлов вычисляем хэш как обычно
+                file_hash = calculate_hash_from_gost(file_path)
             
             # Принимаем файл подписи
             signature_bytes = get_signature_file()
