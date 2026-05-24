@@ -1,0 +1,1 @@
+This is a test message for GOST R 34.10-2012 algorithm verification.

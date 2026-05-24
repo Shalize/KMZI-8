@@ -143,23 +143,41 @@ def generate_and_save_keypair_manually():
 
     print("Генерация ключей, подождите...")
 
-    # Генерируем байты без использования secrets / random
-    private_key_bytes = manual_pseudo_random_bytes(32)
-    public_key_bytes = manual_pseudo_random_bytes(64)
+     # Генерируем секретное число d (закрытый ключ) с помощью LCG-генератора
+    raw_bytes = manual_pseudo_random_bytes(32)
+    d = int.from_bytes(raw_bytes, byteorder='big') % E['q']
+    if d == 0: 
+        d = 1
+    
+    # Переводим число d в 32 байта для сохранения
+    private_key_bytes = d.to_bytes(32, byteorder='big')
+
+    # Вычисляем точку открытого ключа Q = d*P
+    Q = point_mult(d, P_point)
+    if Q is None:
+        print("Ошибка генерации: получена точка на бесконечности. Попробуйте еще раз.")
+        return None
+    
+    qx, qy = Q
+    
+    # Преобразовываем координаты X и Y открытого ключа по 32 байта каждая (всего 64 байта)
+    public_key_bytes = qx.to_bytes(32, byteorder='big') + qy.to_bytes(32, byteorder='big')
 
     # Сохраняем файлы на диск
     try:
+        # Пишем ЗАКРЫТЫЙ ключ (private_key_bytes)
         with open(private_name, "wb") as private_file:
             private_file.write(private_key_bytes)
         print(f"Закрытый ключ (32 байта) сохранен в: {private_name}")
 
+        # Пишем ОТКРЫТЫЙ ключ (public_key_bytes)
         with open(public_name, "wb") as public_file:
             public_file.write(public_key_bytes)
         print(f"Открытый ключ (64 байта) сохранен в: {public_name}")
-        
+
         return private_key_bytes, public_key_bytes
     except Exception as e:
-        print(f"шибка при записи файлов: {e}")
+        print(f"Ошибка при записи файлов: {e}")
         return None
 
 #МАТЕМАТИКА
@@ -270,7 +288,7 @@ def sign_gost_3410(file_hash, private_key_bytes):
         c = r_bytes + s_bytes
         return c
     
-#Функция проверки ЭЦП
+# Функция проверки ЭЦП
 def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
     if len(signature_bytes) != 64:
         return False
@@ -292,6 +310,8 @@ def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
     # Шаг 4 вычисление z1 z2
     z1 = (s * v) % E['q']
     z2 = (-r * v) % E['q']
+    if z2 < 0:
+        z2 += E['q']
     
     # Шаг 5 извлекаем координаты точки открытого ключа Q
     qx = int.from_bytes(public_key_bytes[:32], byteorder='big')
@@ -329,14 +349,17 @@ if __name__ == "__main__":
         user_choice = input("Ваш выбор: ").strip()
 
         if user_choice == "1":
-            print("\nВыбрано ФОРМИРОВАНИЕ подписи")
+            print("\n Выбрано ФОРМИРОВАНИЕ подписи")
             
-            # Сначала ТРЕБОВАНИЕ 1 (принимаем файл)
+            # Принимаем файл
             file_info = get_file_for_signature()
             if not file_info: continue
-            file_path, file_hash = file_info
+            file_path, _, _ = file_info
+
+            # Вычисляем хэш-файла
+            file_hash = calculate_hash_from_gost(file_path)
                 
-            # Затем ТРЕБОВАНИЕ 3 (принимаем ключ подписи)
+            # Принимаем ключ подписи
             private_key = get_key('private')
             if not private_key: continue
 
@@ -350,18 +373,21 @@ if __name__ == "__main__":
             print(f"ЭЦП успешно создана и сохранена в: {output_sig_path}")
 
         elif user_choice == "2":
-            print("\nВыбрано ПРОВЕРКА подписи")
+            print("\n Выбрано ПРОВЕРКА подписи")
             
-            # Сначала ТРЕБОВАНИЕ 1 (принимаем тот же самый файл, но уже для проверки)
+            # Принимаем файл для проверки
             file_info = get_file_for_signature()
             if not file_info: continue
-            _, file_hash = file_info
+            file_path, _, _ = file_info
+
+            # Вычисляем хэш-файла
+            file_hash = calculate_hash_from_gost(file_path)
             
-            # Затем ТРЕБОВАНИЕ 2 (принимаем файл подписи)
+            # Принимаем файл подписи
             signature_bytes = get_signature_file()
             if not signature_bytes: continue
                 
-            # Затем ТРЕБОВАНИЕ 3 (принимаем ключ проверки подписи)
+            # Принимаем открытый ключ проверки подписи
             public_key = get_key('public')
             if not public_key: continue
 
