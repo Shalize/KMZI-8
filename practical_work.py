@@ -159,6 +159,9 @@ def generate_and_save_keypair_manually():
         return None
     
     qx, qy = Q
+    # Обязательно приводим к модулю поля p перед конвертацией в байты
+    qx_mod = qx % E['p']
+    qy_mod = qy % E['p']
     
     # Преобразовываем координаты X и Y открытого ключа по 32 байта каждая (всего 64 байта)
     public_key_bytes = qx.to_bytes(32, byteorder='big') + qy.to_bytes(32, byteorder='big')
