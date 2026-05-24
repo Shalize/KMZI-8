@@ -1,36 +1,32 @@
-# Официальный контрольный пример ГОСТ Р 34.10-2012 (Приложение А.2)
+import os
+from gostcrypto import gosthash
 
-# 1. Записываем вместо текста сразу чистые 32 байта эталонного хэша
-file_hash_hex = "2E8C222E425A8CE6DCF5A2FFADDA2BD2B74AA0E1EAF4D73B4DFF909D1B5D345F"
-message_bytes = bytes.fromhex(file_hash_hex)
+def create_tests():
+    print("=== Генератор тестовых файлов для ГОСТ Р 34.10-2012 ===")
+    
+    # 1. Создаем обычный текстовый файл для подписания
+    doc_name = "test_document.txt"
+    doc_content = "Привет! Это тестовый секретный документ для проверки работы ЭЦП ГОСТ Р 34.10-2012."
+    
+    with open(doc_name, "w", encoding="utf-8") as f:
+        f.write(doc_content)
+    print(f"[+] Создан текстовый файл: {os.path.abspath(doc_name)}")
+    
+    # 2. Вычисляем его честный ГОСТ-хэш (Стрибог-256) и сохраняем как бинарник (32 байта)
+    hasher = gosthash.new('streebog256')
+    hasher.update(doc_content.encode('utf-8'))
+    hash_bytes = hasher.digest()
+    
+    hash_file_name = "test_hash.bin"
+    with open(hash_file_name, "wb") as f:
+        f.write(hash_bytes)
+    print(f"[+] Создан эталонный файл хэша (ровно 32 байта): {os.path.abspath(hash_file_name)}")
+    print(f"    HEX хэша: {hash_bytes.hex()}")
+    
+    print("\n[Успех] Все файлы готовы! Теперь вы можете:")
+    print(f"1. Запустить основной скрипт, выбрать пункт 3 и сгенерировать ключи.")
+    print(f"2. Выбрать пункт 1, указать путь к '{doc_name}' и подписать его.")
+    print(f"3. Выбрать пункт 2 и проверить созданную подпись.")
 
-# 2. Публичный (открытый) ключ проверки подписи Q = (qx, qy)
-# По ГОСТу: qx и qy занимают по 32 байта каждое
-qx = 0x99C3DF265EA59350640BA69D1DE04418AF3FEA03EC0F85F2DD84E8BED4952774
-qy = 0xE218631A69C47C122E2D516DA1C09E6BD19344D94389D1F16C0C4D4DCF96F578
-
-public_key_bytes = qx.to_bytes(32, byteorder='big') + qy.to_bytes(32, byteorder='big')
-
-# 3. Официальная эталонная ЭЦП подпись c = r + s
-# По ГОСТу: r и s занимают по 32 байта каждое
-r = 0x42967A6034A08375837B5C35248A96AE4EE0AD6E041A6F0BD2D7B481AC64F06A
-s = 0x1AE9677322BEFFCCF0C9BD16428BB01211DC4D40FD1F3BCC3737DCFCE280EFA5
-
-signature_bytes = r.to_bytes(32, byteorder='big') + s.to_bytes(32, byteorder='big')
-
-#Записываем всё в бинарные файлы на диск для тестирования программы
-try:
-    with open("test_document.txt", "wb") as f:
-        f.write(message_bytes)
-    print("Создан файл данных: test_document.txt")
-
-    with open("test_public.key", "wb") as f:
-        f.write(public_key_bytes)
-    print("Создан файл открытого ключа: test_public.key")
-
-    with open("test_document.txt.sig", "wb") as f:
-        f.write(signature_bytes)
-    print("Создан файл эталонной подписи: test_document.txt.sig")
-    print("\nФайлы успешно подготовлены! Теперь можно запускать вашу основную программу.")
-except Exception as e:
-    print(f"Ошибка записи файлов: {e}")
+if __name__ == "__main__":
+    create_tests()
