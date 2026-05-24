@@ -1,22 +1,22 @@
 # Официальный контрольный пример ГОСТ Р 34.10-2012 (Приложение А.2)
 
-# 1. Задаем исходное сообщение (его ГОСТ-хеш Стрибог-256 равен указанному в стандарте)
-# Хеш этого текста: 0x2E8C222E425A8CE6DCF5A2FFADDA2BD2B74AA0E1EAF4D73B4DFF909D1B5D345F
-message_bytes = b"This is a test message for GOST R 34.10-2012 algorithm verification."
+# 1. Записываем вместо текста сразу чистые 32 байта эталонного хэша
+file_hash_hex = "2E8C222E425A8CE6DCF5A2FFADDA2BD2B74AA0E1EAF4D73B4DFF909D1B5D345F"
+message_bytes = bytes.fromhex(file_hash_hex)
 
 # 2. Публичный (открытый) ключ проверки подписи Q = (qx, qy)
 # По ГОСТу: qx и qy занимают по 32 байта каждое
 qx = 0x99C3DF265EA59350640BA69D1DE04418AF3FEA03EC0F85F2DD84E8BED4952774
 qy = 0xE218631A69C47C122E2D516DA1C09E6BD19344D94389D1F16C0C4D4DCF96F578
 
-public_key_bytes = qx.to_bytes(32, byteorder='little') + qy.to_bytes(32, byteorder='little')
+public_key_bytes = qx.to_bytes(32, byteorder='big') + qy.to_bytes(32, byteorder='big')
 
 # 3. Официальная эталонная ЭЦП подпись c = r + s
 # По ГОСТу: r и s занимают по 32 байта каждое
 r = 0x42967A6034A08375837B5C35248A96AE4EE0AD6E041A6F0BD2D7B481AC64F06A
 s = 0x1AE9677322BEFFCCF0C9BD16428BB01211DC4D40FD1F3BCC3737DCFCE280EFA5
 
-signature_bytes = r.to_bytes(32, byteorder='little') + s.to_bytes(32, byteorder='little')
+signature_bytes = r.to_bytes(32, byteorder='big') + s.to_bytes(32, byteorder='big')
 
 #Записываем всё в бинарные файлы на диск для тестирования программы
 try:
