@@ -189,21 +189,23 @@ E = {
     
     # Коэффициенты уравнения кривой y^2 = x^3 + ax + b
     'a': 0x07,
-    'b': 0x5D72613C9E2CEE604F455A1A472506D60C1F825C9EBE1AC7BE81F4B0B94A4960,
+    'b': 0x5D7281C30AF19E148D860516742F73D4E6B7865E37839601E85F540E86887A84,
     
     # Порядок группы точек кривой (по его модулю идут все расчеты подписи)
-    'q': 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6C721D0E44747A97A210A8D158E1A3
+    'q': 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 }
 
 # Базовая точка P на кривой E
 P_point = (
-    0x01, 
-    0x8D99A9DE78129E77F376A960FFD7618D5DA4DEFF3F08EA82AC9C978D4ED7B9BA
+    0x03, 
+    0xFA4047B8356CE74311DEE28F38E5DA56DE33A2145529F426471905651B2A1293  
 )
 
 # Поиск обратного элемента по модулю: (val * result) % m == 1.
 def mod_inverse(val, m):
     a, b = val % m, m
+    if val == 0:
+        return 0
     x0, x1 = 1, 0
     while b > 0:
         q_div = a // b
@@ -216,8 +218,9 @@ def point_add(P1, P2):
     if P1 is None: return P2
     if P2 is None: return P1
     
-    x1, y1 = P1
-    x2, y2 = P2
+    # Принудительно приводим к положительному модулю поля p
+    x1, y1 = P1[0] % E['p'], P1[1] % E['p']
+    x2, y2 = P2[0] % E['p'], P2[1] % E['p']
     
     if x1 == x2 and y1 != y2:
         return None  # Точка на бесконечности
@@ -229,6 +232,9 @@ def point_add(P1, P2):
     else:
         num = (y2 - y1) % E['p']
         denom = mod_inverse(x2 - x1, E['p'])
+
+    if denom == 0: 
+        return None # Защита от деления на ноль
         
     lam = (num * denom) % E['p']
     x3 = (lam * lam - x1 - x2) % E['p']
@@ -237,6 +243,11 @@ def point_add(P1, P2):
 
 # Скалярное умножение точки P на число k на кривой E.
 def point_mult(k, P):
+    if P is None: return None
+    # Защита от отрицательного k (переводим k в поле порядка группы q)
+    k = k % E['q'] 
+    if k == 0: return None
+
     result = None
     addend = P
     while k > 0:
@@ -293,11 +304,13 @@ def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
     if len(signature_bytes) != 64:
         return False
     
-    r = int.from_bytes(signature_bytes[:32], byteorder='big')
-    s = int.from_bytes(signature_bytes[32:], byteorder='big')
+    r = int.from_bytes(signature_bytes[:32], byteorder='little')
+    s = int.from_bytes(signature_bytes[32:], byteorder='little')
     
     # Шаг 1 вычисление хэш-функции полученного сообщения М (Передано в file_hash)
-    alpha = int.from_bytes(file_hash, byteorder='big')
+    alpha = int.from_bytes(file_hash, byteorder='little')
+    if alpha % E['q'] == 0:
+        alpha = 1
     
     # Шаг 2 вычисление альфа и определение е
     e = alpha % E['q']
@@ -314,8 +327,8 @@ def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
         z2 += E['q']
     
     # Шаг 5 извлекаем координаты точки открытого ключа Q
-    qx = int.from_bytes(public_key_bytes[:32], byteorder='big')
-    qy = int.from_bytes(public_key_bytes[32:], byteorder='big')
+    qx = int.from_bytes(public_key_bytes[:32], byteorder='little')
+    qy = int.from_bytes(public_key_bytes[32:], byteorder='little')
     Q_point = (qx, qy)
     
     # Шаг 6 вычисление точки эллиптической кривой C = z1P + z2Q и определение R

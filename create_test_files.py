@@ -9,14 +9,14 @@ message_bytes = b"This is a test message for GOST R 34.10-2012 algorithm verific
 qx = 0x99C3DF265EA59350640BA69D1DE04418AF3FEA03EC0F85F2DD84E8BED4952774
 qy = 0xE218631A69C47C122E2D516DA1C09E6BD19344D94389D1F16C0C4D4DCF96F578
 
-public_key_bytes = qx.to_bytes(32, byteorder='big') + qy.to_bytes(32, byteorder='big')
+public_key_bytes = qx.to_bytes(32, byteorder='little') + qy.to_bytes(32, byteorder='little')
 
 # 3. Официальная эталонная ЭЦП подпись c = r + s
 # По ГОСТу: r и s занимают по 32 байта каждое
 r = 0x42967A6034A08375837B5C35248A96AE4EE0AD6E041A6F0BD2D7B481AC64F06A
 s = 0x1AE9677322BEFFCCF0C9BD16428BB01211DC4D40FD1F3BCC3737DCFCE280EFA5
 
-signature_bytes = r.to_bytes(32, byteorder='big') + s.to_bytes(32, byteorder='big')
+signature_bytes = r.to_bytes(32, byteorder='little') + s.to_bytes(32, byteorder='little')
 
 #Записываем всё в бинарные файлы на диск для тестирования программы
 try:
