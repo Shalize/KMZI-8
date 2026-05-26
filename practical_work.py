@@ -395,17 +395,7 @@ if __name__ == "__main__":
             if not file_info: continue
             file_path, _, _ = file_info
 
-            with open(file_path, "rb") as f:
-                raw_file_bytes = f.read()
-
-            if len(raw_file_bytes) == 32:
-                # Если файл ровно 32 байта, значит это наш готовый эталонный хэш из create_test_files.py
-                file_hash = raw_file_bytes
-                print("Обнаружен готовый ГОСТ-хеш (32 байта). Повторное хеширование пропущено.")
-                print(f"Используемый ГОСТ-хеш (HEX): {file_hash.hex()}")
-            else:
-                # Для любых других файлов вычисляем хэш как обычно
-                file_hash = calculate_hash_from_gost(file_path)
+            file_hash = calculate_hash_from_gost(file_path)
             
             # Принимаем файл подписи
             signature_bytes = get_signature_file()
