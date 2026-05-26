@@ -29,7 +29,7 @@ def get_file_for_signature():
     return file_path, file_name, file_size
 
 def calculate_hash_from_gost(file_path):
-    "Вычисление хеша по ГОСТ Р 34.11-2012 (Стрибог-256). Допускается использование готовой реализации хэш-функции ГОСТ Р 34.11-2012"
+    "Вычисление хеша по ГОСТ Р 34.11-2012 (Стрибог-256). По требованиям из задания допускается использование готовой реализации хэш-функции ГОСТ Р 34.11-2012"
     
     # Инициализируем ГОСТ-алгоритм Стрибог
     hasher = gosthash.new('streebog256')
@@ -56,7 +56,7 @@ def get_signature_file():
     "Шаг 2: Прием файла, содержащего электронную цифровую подпись"
     file_sig_path = input("Введите полный путь к файлу с подписью (расширение должно быть или .sig или .sgn): ").strip().strip("'\"")
 
-    # 1. Проверяем существование файла с подписью
+    # Проверяем существование файла с подписью
     if not os.path.exists(file_sig_path):
         print(f"Ошибка: Файл подписи '{file_sig_path}' не найден.")
         return None
@@ -65,11 +65,11 @@ def get_signature_file():
         print(f"Ошибка: Указанный путь ведет к папке.")
         return None
 
-    # 2. Считываем подпись в байтах
+    # Считываем подпись в байтах
     with open(file_sig_path, "rb") as sig_file:
         signature_bytes = sig_file.read()
 
-    # 3. Проверка подписи ГОСТ Р 34.10-2012 для Стрибог-256. Она должна составлять ровно 64 байта (два числа по 256 бит: r и s).
+    # Проверка подписи ГОСТ Р 34.10-2012 для Стрибог-256. Она должна составлять ровно 64 байта (два числа по 256 бит: r и s).
     print(f"Файл с подписью успешно загружен: {os.path.basename(file_sig_path)}")
     print(f"Размер файла с подписью: {len(signature_bytes)} байт")
     
@@ -92,19 +92,19 @@ def get_key(key_type):
 
     key_path = input(key_path_from_user).strip().strip("'\"")
 
-    # 1. Проверяем существование файла ключа
+    # Проверяем существование файла ключа
     if not os.path.exists(key_path) or not os.path.isfile(key_path):
         print("Ошибка ввода: Файл ключа не найден.")
         return None
 
-    # 2. Считываем байты ключа
+    # Считываем байты ключа
     with open(key_path, "rb") as key_file:
         key_bytes = key_file.read()
 
     print(f"Ключ успешно загружен из файла: {os.path.basename(key_path)}")
     print(f"Считано: {len(key_bytes)} байт")
 
-    # 3. Проверяем на соответствие ГОСТ Р 34.10-2012 (256 бит)
+    # Проверяем на соответствие ГОСТ Р 34.10-2012 (256 бит)
     if len(key_bytes) != expected_len:
         print(f"Размер файла ключа не совпадает со стандартом ГОСТ")
         print(f"Ожидалось ровно {expected_len} байт.")
@@ -125,7 +125,7 @@ def manual_pseudo_random_bytes(length):
     result_bytes = bytearray()
 
     while len(result_bytes) < length:
-        # Формула LCG: X_n+1 = (a * X_n + c) mod m
+        # Формула для LCG следующая: X_n+1 = (a * X_n + c) mod m
         seed = (a * seed + c) % m
         # Берем младший байт полученного числа (остаток от деления на 256)
         random_byte = seed % 256
@@ -135,13 +135,13 @@ def manual_pseudo_random_bytes(length):
 
 def generate_and_save_keypair_manually():
     "Шаг 4: Генерация ключевой пары ГОСТ Р 34.10-2012."
-    private_name = input("Введите имя файла для ЗАКРЫТОГО ключа").strip()
+    private_name = input("Введите имя файла для ЗАКРЫТОГО ключа или нажмите Enter").strip()
     if not private_name: private_name = "private.key"
         
-    public_name = input("Введите имя файла для ОТКРЫТОГО ключа: ").strip()
+    public_name = input("Введите имя файла для ОТКРЫТОГО ключа или нажмите Enter: ").strip()
     if not public_name: public_name = "public.key"
 
-    print("Генерация ключей, подождите...")
+    print("Генерация ключей, пожалуйста, подождите...")
 
      # Генерируем секретное число d (закрытый ключ) с помощью LCG-генератора
     raw_bytes = manual_pseudo_random_bytes(32)
@@ -152,7 +152,7 @@ def generate_and_save_keypair_manually():
     # Переводим число d в 32 байта для сохранения
     private_key_bytes = d.to_bytes(32, byteorder='big')
 
-    # Вычисляем точку открытого ключа Q = d*P
+    # Вычисляем точку открытого ключа по формуле Q = d*P
     Q = point_mult(d, P_point)
     if Q is None:
         print("Ошибка генерации: получена точка на бесконечности. Попробуйте еще раз.")
@@ -185,7 +185,7 @@ def generate_and_save_keypair_manually():
 
 #МАТЕМАТИКА
 
-#ПАРАМЕТРЫ ЭЛЛИПТИЧЕСКОЙ КРИВОЙ E И БАЗОВОЙ ТОЧКИ P (ГОСТ Р 34.10-2012)
+#Параметры эллиптической кривой E и базовой точки P (Взято из ГОСТ Р 34.10-2012)
 E = {
     'p': 0x8000000000000000000000000000000000000000000000000000000000000431,
     'a': 0x07,
@@ -197,7 +197,7 @@ P_point = (
     0x08E2A8A0E65147D4BD6316030E16D19C85C97F0A9CA267122B96ABBCEA7E8FC8
 )
 
-# Поиск обратного элемента по модулю: (val * result) % m == 1.
+# Поиск обратного элемента по модулю: (val * result) % m == 1
 def mod_inverse(val, m):
     # Приводим к положительному числу в пределах модуля
     a, b = val % m, m
@@ -211,18 +211,18 @@ def mod_inverse(val, m):
         a, b = b, a % b
         x0, x1 = x1, x0 - q_div * x1
     
-    # Если в конце a != 1, значит числа не взаимно просты (обратного нет)
+    # Если в конце a != 1, значит, числа не взаимно просты (обратного нет)
     if a > 1: 
         return 0 
 
     return x0 % m
 
-# Сложение двух точек P1 и P2 на эллиптической кривой E.
+# Сложение двух точек P1 и P2 на эллиптической кривой E
 def point_add(P1, P2):
     if P1 is None: return P2
     if P2 is None: return P1
     
-    # Принудительно приводим к положительному модулю поля p
+    # Приводим к положительному модулю поля p
     x1, y1 = P1[0] % E['p'], P1[1] % E['p']
     x2, y2 = P2[0] % E['p'], P2[1] % E['p']
     
@@ -245,7 +245,7 @@ def point_add(P1, P2):
     y3 = (lam * (x1 - x3) - y1) % E['p']
     return (x3, y3)
 
-# Скалярное умножение точки P на число k на кривой E.
+# Скалярное умножение точки P на число k на кривой E
 def point_mult(k, P):
     if P is None: return None
     # Защита от отрицательного k (переводим k в поле порядка группы q)
@@ -265,10 +265,10 @@ def point_mult(k, P):
 def sign_gost_3410(file_hash, private_key_bytes):
     d = int.from_bytes(private_key_bytes, byteorder='big')
 
-    # Шаг 1 вычисление хэш-функции (Хеш уже вычислен алгоритмом streebog256 и передан в file_hash)
+    # Шаг 1 Должно быть вычисление хэш-функции (Хеш уже вычислен алгоритмом streebog256 и передан в file_hash)
     alpha = int.from_bytes(file_hash, byteorder='big')
 
-    # Шаг 2 вычисление альфа и опеределение E
+    # Шаг 2 Вычисление альфа и определение e
     e = alpha % E['q']
     if e == 0:
         e = 1
@@ -282,7 +282,7 @@ def sign_gost_3410(file_hash, private_key_bytes):
         # Шаг 4 Вычисление точки эллиптической кривой C = kP, r = xc(mod q)
         C = point_mult(k, P_point)
         if C is None:
-            continue  # Возврат к шагу 3 (если попали в бесконечность)
+            continue  # Возврат к шагу 3
         xc, yc = C
         r = xc % E['q']
 
@@ -290,14 +290,14 @@ def sign_gost_3410(file_hash, private_key_bytes):
         if r == 0:
             continue  # Возврат к шагу 3
 
-        # Шаг 6 вычисление s
+        # Шаг 6 Вычисление s
         s = (k * e + r * d) % E['q']
 
         # Шаг 7 s=0? да -> шаг 3, нет - дальше
         if s == 0:
             continue  # Возврат к шагу 3
             
-        # Шаг 8 определение цифровой подписи c -> выходной результат
+        # Шаг 8 Определение цифровой подписи c -> выходной результат
         r_bytes = r.to_bytes(32, byteorder='big')
         s_bytes = s.to_bytes(32, byteorder='big')
         c = r_bytes + s_bytes
@@ -311,29 +311,29 @@ def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
     r = int.from_bytes(signature_bytes[:32], byteorder='big')
     s = int.from_bytes(signature_bytes[32:], byteorder='big')
     
-    # Шаг 1 вычисление хэш-функции полученного сообщения М (Передано в file_hash)
+    # Шаг 1 Вычисление хэш-функции полученного сообщения М (Передано в file_hash)
     alpha = int.from_bytes(file_hash, byteorder='big')
     if alpha % E['q'] == 0:
         alpha = 1
     
-    # Шаг 2 вычисление альфа и определение е
+    # Шаг 2 Вычисление альфа и определение е
     e = alpha % E['q']
     if e == 0:
         e = 1
         
-    # Шаг 3 вычисление v
+    # Шаг 3 Вычисление v
     v = mod_inverse(e, E['q'])
     
-    # Шаг 4 вычисление z1 z2
+    # Шаг 4 Вычисление z1 и z2
     z1 = (s * v) % E['q']
     z2 = ((E['q'] - r) * v) % E['q']
     
-    # Шаг 5 извлекаем координаты точки открытого ключа Q
+    # Шаг 5 Извлекаем координаты точки открытого ключа Q
     qx = int.from_bytes(public_key_bytes[:32], byteorder='big')
     qy = int.from_bytes(public_key_bytes[32:], byteorder='big')
     Q_point = (qx, qy)
     
-    # Шаг 6 вычисление точки эллиптической кривой C = z1P + z2Q и определение R
+    # Шаг 6 Вычисление точки эллиптической кривой C = z1P + z2Q и определение R
     z1P = point_mult(z1, P_point)
     z2Q = point_mult(z2, Q_point)
     C = point_add(z1P, z2Q)
@@ -344,20 +344,20 @@ def verify_gost_3410(file_hash, signature_bytes, public_key_bytes):
     xc, yc = C
     R = xc % E['q']
     
-    # Шаг 7 R=r? Да -> дальше, нет->подпись неверна, выход
+    # Шаг 7 R=r? Да -> дальше, нет-> подпись неверна, выход
     if R == r:
-        return True  # выходной результат подпись верна
+        return True  # Выходной результат подпись верна
     else:
         return False
     
 
-# Главная точка входа в программу
+# Основной пользовательский сценарий
 if __name__ == "__main__":
     print("Программная реализация по теме Схемы электронной подписи (практическая работа 8)")
     while True:
         print("1 — Выбрать ФОРМИРОВАНИЕ электронной цифровой подписи")
         print("2 — Выбрать ПРОВЕРКУ электронной цифровой подписи")
-        print("3 — Сгенерировать ключевую пару (Доп. функция)")
+        print("3 — Сгенерировать ключевую пару (чтобы подписать тестовый файл)")
         print("0 — Выход")
         print("-" * 60)
 
@@ -415,7 +415,7 @@ if __name__ == "__main__":
             print("*"*40)
 
         elif user_choice == "3":
-            # Вызов требования 4
+            # Вызов требования 4 для генерации ключевой пары
             generate_and_save_keypair_manually()
 
         elif user_choice == "0":
