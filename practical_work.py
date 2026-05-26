@@ -69,7 +69,7 @@ def get_signature_file():
     with open(file_sig_path, "rb") as sig_file:
         signature_bytes = sig_file.read()
 
-    # Проверка подписи ГОСТ Р 34.10-2012 для Стрибог-256. Она должна составлять ровно 64 байта (два числа по 256 бит: r и s).
+    # Проверка подписи ГОСТ Р 34.10-2012 для Стрибог-256. Она должна составлять ровно 64 байта (два числа по 256 бит: r и s)
     print(f"Файл с подписью успешно загружен: {os.path.basename(file_sig_path)}")
     print(f"Размер файла с подписью: {len(signature_bytes)} байт")
     
