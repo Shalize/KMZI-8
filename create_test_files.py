@@ -4,7 +4,7 @@ from gostcrypto import gosthash
 def create_tests():
     print("Генератор тестовых файлов для ГОСТ Р 34.10-2012")
     
-    # 1. Создаем обычный текстовый файл для подписания
+    # Создаем обычный текстовый файл для подписания
     doc_name = "test_document.txt"
     doc_content = "Привет! Это тестовый секретный документ для проверки работы ЭЦП ГОСТ Р 34.10-2012."
     
@@ -12,7 +12,7 @@ def create_tests():
         f.write(doc_content)
     print(f"Создан текстовый файл: {os.path.abspath(doc_name)}")
     
-    # 2. Вычисляем его ГОСТ-хэш (Стрибог-256) и сохраняем как бинарник (32 байта)
+    # Вычисляем его ГОСТ-хэш (Стрибог-256) и сохраняем как бинарник (32 байта)
     hasher = gosthash.new('streebog256')
     hasher.update(doc_content.encode('utf-8'))
     hash_bytes = hasher.digest()
