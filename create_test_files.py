@@ -2,7 +2,7 @@ import os
 from gostcrypto import gosthash
 
 def create_tests():
-    print("=== Генератор тестовых файлов для ГОСТ Р 34.10-2012 ===")
+    print("Генератор тестовых файлов для ГОСТ Р 34.10-2012")
     
     # Создаем обычный текстовый файл для подписания
     doc_name = "test_document.txt"
